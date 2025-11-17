@@ -80,6 +80,29 @@ app.get('/', (req, res) => {
   res.json({ message: 'Chat App Backend API' });
 });
 
+// Room code from environment variable
+const ROOM_CODE = process.env.ROOM_CODE;
+
+if (!ROOM_CODE) {
+  console.error('❌ ROOM_CODE is not set in environment variables!');
+  console.error('Please set ROOM_CODE in backend/.env.local or Render environment variables.');
+}
+
+// Verify room code
+app.post('/api/verify-room-code', (req, res) => {
+  const { roomCode } = req.body;
+  
+  if (!ROOM_CODE) {
+    return res.status(500).json({ success: false, message: 'Room code not configured on server' });
+  }
+  
+  if (roomCode === ROOM_CODE) {
+    res.json({ success: true, message: 'Room code verified' });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid room code' });
+  }
+});
+
 // Get all messages
 app.get('/api/messages', async (req, res) => {
   try {

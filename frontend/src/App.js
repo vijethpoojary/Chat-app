@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import ChatWindow from './components/ChatWindow';
 import LoginScreen from './components/LoginScreen';
+import RoomCodeScreen from './components/RoomCodeScreen';
 import './App.css';
 
 // Backend URL - uses environment variable for production, localhost for development
@@ -11,6 +12,7 @@ function App() {
   const [socket, setSocket] = useState(null);
   const [username, setUsername] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [roomCodeVerified, setRoomCodeVerified] = useState(false);
   const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
 
@@ -71,21 +73,34 @@ function App() {
     setIsLoggedIn(false);
     setUsername('');
     setMessages([]);
+    setRoomCodeVerified(false);
     localStorage.removeItem('chatUsername');
+    localStorage.removeItem('roomCodeVerified');
   };
 
-  // Check for saved username on mount
+  const handleRoomCodeVerified = () => {
+    setRoomCodeVerified(true);
+  };
+
+  // Check for saved verification and username on mount
   useEffect(() => {
+    const verified = localStorage.getItem('roomCodeVerified');
     const savedUsername = localStorage.getItem('chatUsername');
-    if (savedUsername) {
-      setUsername(savedUsername);
-      setIsLoggedIn(true);
+    
+    if (verified === 'true') {
+      setRoomCodeVerified(true);
+      if (savedUsername) {
+        setUsername(savedUsername);
+        setIsLoggedIn(true);
+      }
     }
   }, []);
 
   return (
     <div className="App">
-      {!isLoggedIn ? (
+      {!roomCodeVerified ? (
+        <RoomCodeScreen onRoomCodeVerified={handleRoomCodeVerified} />
+      ) : !isLoggedIn ? (
         <LoginScreen onLogin={handleLogin} />
       ) : (
         <ChatWindow

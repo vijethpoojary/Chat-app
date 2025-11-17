@@ -31,27 +31,38 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (message.trim()) {
-      onSendMessage(message);
+      const messageToSend = message.trim();
+      
+      // Clear message immediately but keep focus
       setMessage('');
       setIsTyping(false);
       onTyping(false);
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
+      
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
+        // Keep focus immediately to prevent keyboard from closing
+        textareaRef.current.focus();
       }
       
-      // Keep keyboard open on mobile by refocusing the textarea
-      // Use setTimeout to ensure focus happens after state update
+      // Send message after a tiny delay to ensure focus is maintained
       setTimeout(() => {
+        onSendMessage(messageToSend);
+        // Ensure focus is still maintained after sending
         if (textareaRef.current) {
           textareaRef.current.focus();
         }
-      }, 100);
+      }, 10);
     }
+    
+    // Prevent form from submitting (which would cause keyboard to close)
+    return false;
   };
 
   const handleKeyPress = (e) => {
@@ -89,6 +100,12 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
     };
   }, []);
 
+  const handleButtonClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleSubmit(e);
+  };
+
   return (
     <div className="border-t border-gray-200 bg-white p-4">
       <form onSubmit={handleSubmit} className="flex items-end space-x-2">
@@ -104,7 +121,8 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
           />
         </div>
         <button
-          type="submit"
+          type="button"
+          onClick={handleButtonClick}
           disabled={!message.trim()}
           className="bg-primary-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0"
         >

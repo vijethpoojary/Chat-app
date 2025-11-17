@@ -107,7 +107,7 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white p-4">
+    <div className="border-t border-gray-200 bg-white p-2 md:p-4 fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto z-20 safe-area-inset-bottom">
       <form onSubmit={handleSubmit} className="flex items-end space-x-2">
         <div className="flex-1 relative">
           <textarea
@@ -116,7 +116,7 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
             onChange={handleChange}
             onKeyPress={handleKeyPress}
             placeholder="Type your message..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none max-h-32 overflow-y-auto"
+            className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none max-h-32 overflow-y-auto text-sm md:text-base"
             rows="1"
           />
         </div>
@@ -124,7 +124,7 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
           type="button"
           onClick={handleButtonClick}
           disabled={!message.trim()}
-          className="bg-primary-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0"
+          className="bg-primary-500 text-white px-4 py-2 md:px-6 md:py-3 rounded-lg font-semibold hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-sm md:text-base flex-shrink-0"
         >
           <span className="hidden sm:inline">Send</span>
           <span className="sm:hidden">📤</span>

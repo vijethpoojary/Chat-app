@@ -139,7 +139,7 @@ const MessageList = ({ messages, currentUser, roomCode, messagesEndRef, socket }
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto p-2 md:p-4 bg-gray-50 flex items-center justify-center">
+      <div className="h-full p-2 md:p-4 bg-gray-50 flex items-center justify-center" style={{ overflowY: 'hidden' }}>
         <div className="text-center text-gray-400">
           <p className="text-xl mb-2">👋</p>
           <p>No messages yet. Start the conversation!</p>
@@ -149,7 +149,7 @@ const MessageList = ({ messages, currentUser, roomCode, messagesEndRef, socket }
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-2 md:p-4 bg-gray-50">
+    <div className="h-full p-2 md:p-4 bg-gray-50" style={{ overflowY: messages.length > 0 ? 'auto' : 'hidden' }}>
       {/* Selection Mode Header */}
       {isSelectionMode && (
         <div className="sticky top-0 z-10 bg-primary-500 text-white p-3 mb-2 flex justify-between items-center shadow-md">

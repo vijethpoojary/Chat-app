@@ -71,9 +71,9 @@ const ChatWindow = ({ socket, username, roomCode, roomCreator, messages, typingU
   const isCreator = username === roomCreator;
 
   return (
-    <div className="flex flex-col h-screen max-h-screen bg-white md:rounded-lg md:shadow-2xl md:m-4 md:max-w-4xl md:mx-auto w-full overflow-hidden">
+    <div className="flex flex-col h-screen max-h-screen bg-white md:rounded-lg md:shadow-2xl md:m-4 md:max-w-4xl md:mx-auto w-full overflow-hidden relative">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 shadow-md flex justify-between items-center">
+      <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 shadow-md flex justify-between items-center flex-shrink-0 z-10">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center font-bold text-lg">
             {username.charAt(0).toUpperCase()}
@@ -104,21 +104,23 @@ const ChatWindow = ({ socket, username, roomCode, roomCreator, messages, typingU
 
       {/* Typing Indicator */}
       {typingUsers.length > 0 && (
-        <div className="bg-primary-50 px-4 py-2 text-sm text-gray-600 border-b">
+        <div className="bg-primary-50 px-4 py-2 text-sm text-gray-600 border-b flex-shrink-0">
           {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
         </div>
       )}
 
-      {/* Messages */}
-      <MessageList 
-        messages={messages} 
-        currentUser={username} 
-        roomCode={roomCode}
-        messagesEndRef={messagesEndRef}
-        socket={socket}
-      />
+      {/* Messages Container - Only scrolls when content overflows */}
+      <div className="flex-1 min-h-0 overflow-hidden pb-24 md:pb-0">
+        <MessageList 
+          messages={messages} 
+          currentUser={username} 
+          roomCode={roomCode}
+          messagesEndRef={messagesEndRef}
+          socket={socket}
+        />
+      </div>
 
-      {/* Input */}
+      {/* Input - Fixed at bottom on mobile */}
       <MessageInput onSendMessage={handleSendMessage} onTyping={handleTyping} />
     </div>
   );

@@ -107,7 +107,7 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white p-2 md:p-4 fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto z-20 safe-area-inset-bottom">
+    <div className="border-t border-gray-200 bg-white p-2 md:p-4 fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto z-20 safe-area-inset-bottom shadow-lg md:shadow-none">
       <form onSubmit={handleSubmit} className="flex items-end space-x-2">
         <div className="flex-1 relative">
           <textarea

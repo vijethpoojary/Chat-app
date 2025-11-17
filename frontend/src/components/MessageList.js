@@ -154,7 +154,7 @@ const MessageList = ({ messages, currentUser, roomCode, messagesEndRef, socket }
       style={{ 
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start',
+        justifyContent: 'flex-end',
         minHeight: '100%'
       }}
     >

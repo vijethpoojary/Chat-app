@@ -8,47 +8,70 @@ const ChatWindow = ({ socket, username, roomCode, roomCreator, messages, typingU
   const [isDeleting, setIsDeleting] = useState(false);
   const prevMessagesLengthRef = useRef(0);
   const isInitialLoadRef = useRef(true);
+  const shouldAutoScrollRef = useRef(true);
 
-  const scrollToBottom = (smooth = false, force = false) => {
-    if (messagesEndRef.current && messagesContainerRef.current) {
+  const scrollToBottom = (smooth = false) => {
+    if (messagesContainerRef.current && shouldAutoScrollRef.current) {
       const container = messagesContainerRef.current;
       
-      // Check if content overflows
-      const hasOverflow = container.scrollHeight > container.clientHeight;
-      
-      if (!hasOverflow && !force) {
-        // No overflow, don't scroll - messages are all visible
-        return;
-      }
-      
-      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100; // 100px threshold
-      
-      // Only scroll if user is near bottom, it's a new message, or forced
-      if (force || isAtBottom || messages.length > prevMessagesLengthRef.current) {
-        setTimeout(() => {
-          if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
-          }
-        }, 50);
+      // Direct scroll to bottom (more reliable than scrollIntoView)
+      if (smooth) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      } else {
+        container.scrollTop = container.scrollHeight;
       }
     }
   };
 
+  // Check if user is at bottom
+  const checkIfAtBottom = () => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      const threshold = 100;
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+      shouldAutoScrollRef.current = isAtBottom;
+      return isAtBottom;
+    }
+    return true;
+  };
+
+  // Handle scroll events to track if user is at bottom
+  const handleScroll = () => {
+    checkIfAtBottom();
+  };
+
   useEffect(() => {
-    // On initial load, don't scroll - let messages start from top
+    // On initial load
     if (isInitialLoadRef.current && messages.length > 0) {
       isInitialLoadRef.current = false;
-      // Ensure container starts at top (scrollTop = 0)
-      if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop = 0;
-      }
-      // Don't scroll on initial load - messages will be visible from top
       prevMessagesLengthRef.current = messages.length;
+      shouldAutoScrollRef.current = true;
+      
+      // Wait for layout to complete
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          const container = messagesContainerRef.current;
+          const hasOverflow = container.scrollHeight > container.clientHeight;
+          
+          if (hasOverflow) {
+            // Content overflows - scroll to bottom to show latest messages
+            container.scrollTop = container.scrollHeight;
+          }
+          // If no overflow, messages are all visible - don't scroll
+        }
+      }, 300);
       return;
     } 
-    // When new message is added, scroll to bottom only if content overflows
+    // When new message is added
     else if (messages.length > prevMessagesLengthRef.current) {
-      scrollToBottom(true, false);
+      // Always scroll to show new message above input (like WhatsApp)
+      shouldAutoScrollRef.current = true;
+      setTimeout(() => {
+        scrollToBottom(true); // Smooth scroll for new messages
+      }, 100);
     }
     
     prevMessagesLengthRef.current = messages.length;
@@ -152,10 +175,12 @@ const ChatWindow = ({ socket, username, roomCode, roomCreator, messages, typingU
       {/* Messages Container - Only scrolls when content overflows */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 min-h-0 pb-24 md:pb-0"
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 pb-20 md:pb-0"
         style={{ 
           overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain'
         }}
       >
         <MessageList 

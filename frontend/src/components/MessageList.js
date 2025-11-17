@@ -149,7 +149,15 @@ const MessageList = ({ messages, currentUser, roomCode, messagesEndRef, socket }
   }
 
   return (
-    <div className="h-full p-2 md:p-4 bg-gray-50" style={{ overflowY: messages.length > 0 ? 'auto' : 'hidden' }}>
+    <div 
+      className="p-2 md:p-4 bg-gray-50" 
+      style={{ 
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        minHeight: '100%'
+      }}
+    >
       {/* Selection Mode Header */}
       {isSelectionMode && (
         <div className="sticky top-0 z-10 bg-primary-500 text-white p-3 mb-2 flex justify-between items-center shadow-md">

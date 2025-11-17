@@ -11,8 +11,9 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
   useEffect(() => {
     const initIndicKeyboard = () => {
       if (window.google && window.google.load) {
-        window.google.load('elements', '1', {
-          packages: 'transliteration'
+        // Use inputtools instead of elements to avoid warning
+        window.google.load('inputtools', '1', {
+          packages: ['transliteration']
         }, () => {
           if (window.google.elements && window.google.elements.transliteration && textareaRef.current) {
             const options = {

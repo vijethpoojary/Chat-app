@@ -15,7 +15,7 @@ services:
           name: chat-app-backend
           property: port
       - key: MONGODB_URI
-        sync: false  # Set this manually in Render dashboard after MongoDB Atlas setup
+        sync: false  # Set this is manually in Render dashboard after MongoDB Atlas setup
       - key: FRONTEND_URL
         sync: false  # Set this manually in Render dashboard after Vercel deployment
 

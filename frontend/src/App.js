@@ -60,6 +60,16 @@ function App() {
         setTypingUsers([]);
       });
 
+      // Listen for deleted messages
+      newSocket.on('messagesDeleted', (data) => {
+        if (data.roomCode === roomCode.toUpperCase()) {
+          // Remove deleted messages from state
+          setMessages((prevMessages) => 
+            prevMessages.filter(msg => !data.messageIds.includes(msg._id))
+          );
+        }
+      });
+
       // Cleanup on unmount
       return () => {
         newSocket.close();

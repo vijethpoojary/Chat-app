@@ -39,16 +39,36 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ["GET", "POST"]
+  methods: ["GET", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["Content-Type"]
 };
 
 const io = socketIo(server, {
-  cors: corsOptions
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (process.env.NODE_ENV === 'production') {
+        if (allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST"]
+  }
 });
 
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
 
 // MongoDB Connection - Uses MongoDB Atlas (configured in .env.local)
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -202,6 +222,30 @@ app.get('/api/messages/:roomCode', async (req, res) => {
   }
 });
 
+// Delete messages
+app.delete('/api/delete-messages', async (req, res) => {
+  try {
+    const { roomCode, messageIds } = req.body;
+    
+    if (!roomCode || !messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Room code and message IDs are required' });
+    }
+    
+    const code = roomCode.toUpperCase();
+    
+    // Delete messages
+    const result = await Message.deleteMany({ 
+      _id: { $in: messageIds },
+      roomCode: code 
+    });
+    
+    res.json({ success: true, message: `${result.deletedCount} message(s) deleted` });
+  } catch (error) {
+    console.error('Error deleting messages:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete messages' });
+  }
+});
+
 // Socket.io Connection
 io.on('connection', (socket) => {
   console.log('👤 User connected:', socket.id);
@@ -255,13 +299,24 @@ io.on('connection', (socket) => {
         return;
       }
 
-      const code = roomCode.toUpperCase();
+      // Security: Input validation and sanitization
+      const code = roomCode.trim().toUpperCase();
+      const sanitizedSender = sender.trim().substring(0, 50); // Limit length
+      const sanitizedMessage = message.trim().substring(0, 1000); // Limit length
+      
+      // Basic XSS protection - remove script tags
+      const cleanMessage = sanitizedMessage.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      
+      if (!sanitizedSender || !cleanMessage) {
+        socket.emit('error', { message: 'Invalid input' });
+        return;
+      }
 
       // Save message to database
       const newMessage = new Message({
         roomCode: code,
-        sender,
-        message,
+        sender: sanitizedSender,
+        message: cleanMessage,
         timestamp: new Date()
       });
 
@@ -278,6 +333,20 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error saving message:', error);
       socket.emit('error', { message: 'Failed to send message' });
+    }
+  });
+
+  // Handle deleted messages
+  socket.on('messagesDeleted', async (data) => {
+    try {
+      const { roomCode, messageIds } = data;
+      if (!roomCode || !messageIds) return;
+      
+      const code = roomCode.toUpperCase();
+      // Notify all users in the room
+      io.to(code).emit('messagesDeleted', { roomCode: code, messageIds });
+    } catch (error) {
+      console.error('Error handling deleted messages:', error);
     }
   });
 
@@ -302,9 +371,31 @@ io.on('connection', (socket) => {
   });
 });
 
+// Auto-delete messages older than 24 hours
+const deleteOldMessages = async () => {
+  try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const result = await Message.deleteMany({
+      timestamp: { $lt: twentyFourHoursAgo }
+    });
+    if (result.deletedCount > 0) {
+      console.log(`🗑️  Deleted ${result.deletedCount} message(s) older than 24 hours`);
+    }
+  } catch (error) {
+    console.error('Error deleting old messages:', error);
+  }
+};
+
+// Run cleanup every hour
+setInterval(deleteOldMessages, 60 * 60 * 1000);
+
+// Run cleanup on server start
+deleteOldMessages();
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Socket.io server ready`);
+  console.log(`🧹 Auto-delete task scheduled (runs every hour)`);
 });
 

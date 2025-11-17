@@ -79,7 +79,7 @@ const ChatWindow = ({ socket, username, roomCode, roomCreator, messages, typingU
             {username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h2 className="font-semibold text-lg">Room: {roomCode}</h2>
+            <h2 className="font-semibold text-lg">Chat Room</h2>
             <p className="text-xs text-primary-100">Logged in as {username}</p>
           </div>
         </div>
@@ -110,7 +110,13 @@ const ChatWindow = ({ socket, username, roomCode, roomCreator, messages, typingU
       )}
 
       {/* Messages */}
-      <MessageList messages={messages} currentUser={username} messagesEndRef={messagesEndRef} />
+      <MessageList 
+        messages={messages} 
+        currentUser={username} 
+        roomCode={roomCode}
+        messagesEndRef={messagesEndRef}
+        socket={socket}
+      />
 
       {/* Input */}
       <MessageInput onSendMessage={handleSendMessage} onTyping={handleTyping} />

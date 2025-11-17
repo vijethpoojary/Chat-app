@@ -176,11 +176,12 @@ const ChatWindow = ({ socket, username, roomCode, roomCreator, messages, typingU
       <div 
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 pb-20 md:pb-0"
+        className="flex-1 min-h-0 md:pb-0"
         style={{ 
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain'
+          overscrollBehavior: 'contain',
+          paddingBottom: '100px' // Extra padding on mobile to show full message with timestamp above input
         }}
       >
         <MessageList 

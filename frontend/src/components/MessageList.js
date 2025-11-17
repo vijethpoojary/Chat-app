@@ -155,7 +155,8 @@ const MessageList = ({ messages, currentUser, roomCode, messagesEndRef, socket }
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
-        minHeight: '100%'
+        minHeight: '100%',
+        paddingBottom: '12px' // Extra padding at bottom to ensure last message timestamp is visible
       }}
     >
       {/* Selection Mode Header */}
@@ -228,7 +229,9 @@ const MessageList = ({ messages, currentUser, roomCode, messagesEndRef, socket }
           })}
         </div>
       ))}
-      <div ref={messagesEndRef} />
+      {/* Spacer to ensure last message timestamp is visible */}
+      <div style={{ height: '8px', flexShrink: 0 }} />
+      <div ref={messagesEndRef} style={{ height: '1px', flexShrink: 0 }} />
     </div>
   );
 };

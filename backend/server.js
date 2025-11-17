@@ -66,8 +66,18 @@ mongoose.connect(MONGODB_URI, {
 .then(() => console.log('✅ MongoDB Connected'))
 .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
+// Room Schema
+const roomSchema = new mongoose.Schema({
+  roomCode: { type: String, required: true, unique: true, uppercase: true },
+  creator: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Room = mongoose.model('Room', roomSchema);
+
 // Message Schema
 const messageSchema = new mongoose.Schema({
+  roomCode: { type: String, required: true, uppercase: true },
   sender: { type: String, required: true },
   message: { type: String, required: true },
   timestamp: { type: Date, default: Date.now }
@@ -80,33 +90,112 @@ app.get('/', (req, res) => {
   res.json({ message: 'Chat App Backend API' });
 });
 
-// Room code from environment variable
-const ROOM_CODE = process.env.ROOM_CODE;
-
-if (!ROOM_CODE) {
-  console.error('❌ ROOM_CODE is not set in environment variables!');
-  console.error('Please set ROOM_CODE in backend/.env.local or Render environment variables.');
-}
-
-// Verify room code
-app.post('/api/verify-room-code', (req, res) => {
-  const { roomCode } = req.body;
-  
-  if (!ROOM_CODE) {
-    return res.status(500).json({ success: false, message: 'Room code not configured on server' });
-  }
-  
-  if (roomCode === ROOM_CODE) {
-    res.json({ success: true, message: 'Room code verified' });
-  } else {
-    res.status(401).json({ success: false, message: 'Invalid room code' });
+// Create Room
+app.post('/api/create-room', async (req, res) => {
+  try {
+    const { roomCode, creator } = req.body;
+    
+    if (!roomCode || !roomCode.trim()) {
+      return res.status(400).json({ success: false, message: 'Room code is required' });
+    }
+    
+    if (!creator || !creator.trim()) {
+      return res.status(400).json({ success: false, message: 'Creator name is required' });
+    }
+    
+    const code = roomCode.trim().toUpperCase();
+    
+    // Check if room already exists
+    const existingRoom = await Room.findOne({ roomCode: code });
+    if (existingRoom) {
+      return res.status(409).json({ success: false, message: 'Room code already exists' });
+    }
+    
+    // Create new room
+    const newRoom = new Room({
+      roomCode: code,
+      creator: creator.trim()
+    });
+    
+    await newRoom.save();
+    
+    res.json({ success: true, message: 'Room created successfully', roomCode: code });
+  } catch (error) {
+    console.error('Error creating room:', error);
+    res.status(500).json({ success: false, message: 'Failed to create room' });
   }
 });
 
-// Get all messages
-app.get('/api/messages', async (req, res) => {
+// Join Room (verify room exists)
+app.post('/api/join-room', async (req, res) => {
   try {
-    const messages = await Message.find().sort({ timestamp: 1 }).limit(100);
+    const { roomCode } = req.body;
+    
+    if (!roomCode || !roomCode.trim()) {
+      return res.status(400).json({ success: false, message: 'Room code is required' });
+    }
+    
+    const code = roomCode.trim().toUpperCase();
+    
+    // Check if room exists
+    const room = await Room.findOne({ roomCode: code });
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found' });
+    }
+    
+    res.json({ success: true, message: 'Room found', roomCode: code, creator: room.creator });
+  } catch (error) {
+    console.error('Error joining room:', error);
+    res.status(500).json({ success: false, message: 'Failed to join room' });
+  }
+});
+
+// Delete Room (only creator can delete)
+app.delete('/api/delete-room', async (req, res) => {
+  try {
+    const { roomCode, creator } = req.body;
+    
+    if (!roomCode || !roomCode.trim()) {
+      return res.status(400).json({ success: false, message: 'Room code is required' });
+    }
+    
+    if (!creator || !creator.trim()) {
+      return res.status(400).json({ success: false, message: 'Creator name is required' });
+    }
+    
+    const code = roomCode.trim().toUpperCase();
+    
+    // Find room
+    const room = await Room.findOne({ roomCode: code });
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found' });
+    }
+    
+    // Verify creator
+    if (room.creator !== creator.trim()) {
+      return res.status(403).json({ success: false, message: 'Only room creator can delete the room' });
+    }
+    
+    // Delete all messages in the room
+    await Message.deleteMany({ roomCode: code });
+    
+    // Delete the room
+    await Room.deleteOne({ roomCode: code });
+    
+    res.json({ success: true, message: 'Room and all messages deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting room:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete room' });
+  }
+});
+
+// Get messages for a room
+app.get('/api/messages/:roomCode', async (req, res) => {
+  try {
+    const { roomCode } = req.params;
+    const code = roomCode.toUpperCase();
+    
+    const messages = await Message.find({ roomCode: code }).sort({ timestamp: 1 }).limit(100);
     res.json(messages);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -117,10 +206,39 @@ app.get('/api/messages', async (req, res) => {
 io.on('connection', (socket) => {
   console.log('👤 User connected:', socket.id);
 
-  // Send previous messages to newly connected user
-  socket.on('requestMessages', async () => {
+  // Join room
+  socket.on('joinRoom', async (data) => {
     try {
-      const messages = await Message.find().sort({ timestamp: 1 }).limit(100);
+      const { roomCode } = data;
+      if (!roomCode) {
+        socket.emit('error', { message: 'Room code is required' });
+        return;
+      }
+      
+      const code = roomCode.toUpperCase();
+      socket.join(code);
+      console.log(`👤 User ${socket.id} joined room: ${code}`);
+      
+      // Send previous messages for this room
+      const messages = await Message.find({ roomCode: code }).sort({ timestamp: 1 }).limit(100);
+      socket.emit('previousMessages', messages);
+    } catch (error) {
+      console.error('Error joining room:', error);
+      socket.emit('error', { message: 'Failed to join room' });
+    }
+  });
+
+  // Send previous messages to newly connected user (for specific room)
+  socket.on('requestMessages', async (data) => {
+    try {
+      const { roomCode } = data || {};
+      if (!roomCode) {
+        socket.emit('error', { message: 'Room code is required' });
+        return;
+      }
+      
+      const code = roomCode.toUpperCase();
+      const messages = await Message.find({ roomCode: code }).sort({ timestamp: 1 }).limit(100);
       socket.emit('previousMessages', messages);
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -130,15 +248,18 @@ io.on('connection', (socket) => {
   // Handle new message
   socket.on('sendMessage', async (data) => {
     try {
-      const { sender, message } = data;
+      const { roomCode, sender, message } = data;
       
-      if (!sender || !message) {
-        socket.emit('error', { message: 'Sender and message are required' });
+      if (!roomCode || !sender || !message) {
+        socket.emit('error', { message: 'Room code, sender and message are required' });
         return;
       }
 
+      const code = roomCode.toUpperCase();
+
       // Save message to database
       const newMessage = new Message({
+        roomCode: code,
         sender,
         message,
         timestamp: new Date()
@@ -146,9 +267,10 @@ io.on('connection', (socket) => {
 
       await newMessage.save();
 
-      // Broadcast message to all connected clients
-      io.emit('newMessage', {
+      // Broadcast message to all clients in this room only
+      io.to(code).emit('newMessage', {
         _id: newMessage._id,
+        roomCode: code,
         sender: newMessage.sender,
         message: newMessage.message,
         timestamp: newMessage.timestamp
@@ -159,13 +281,19 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle user typing indicator
+  // Handle user typing indicator (scoped to room)
   socket.on('typing', (data) => {
-    socket.broadcast.emit('userTyping', data);
+    const { roomCode } = data;
+    if (roomCode) {
+      socket.to(roomCode.toUpperCase()).emit('userTyping', data);
+    }
   });
 
-  socket.on('stopTyping', () => {
-    socket.broadcast.emit('userStoppedTyping');
+  socket.on('stopTyping', (data) => {
+    const { roomCode } = data || {};
+    if (roomCode) {
+      socket.to(roomCode.toUpperCase()).emit('userStoppedTyping');
+    }
   });
 
   // Handle disconnection

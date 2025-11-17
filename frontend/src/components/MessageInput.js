@@ -3,61 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 const MessageInput = ({ onSendMessage, onTyping }) => {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showKeyboard, setShowKeyboard] = useState(false);
   const typingTimeoutRef = useRef(null);
   const textareaRef = useRef(null);
-
-  // Initialize Google Indic Keyboard
-  useEffect(() => {
-    const initIndicKeyboard = () => {
-      if (window.google && window.google.load) {
-        // Use inputtools instead of elements to avoid warning
-        window.google.load('inputtools', '1', {
-          packages: ['transliteration']
-        }, () => {
-          if (window.google.elements && window.google.elements.transliteration && textareaRef.current) {
-            const options = {
-              sourceLanguage: window.google.elements.transliteration.LanguageCode.ENGLISH,
-              destinationLanguage: [
-                window.google.elements.transliteration.LanguageCode.HINDI,
-                window.google.elements.transliteration.LanguageCode.TAMIL,
-                window.google.elements.transliteration.LanguageCode.TELUGU,
-                window.google.elements.transliteration.LanguageCode.MARATHI,
-                window.google.elements.transliteration.LanguageCode.BENGALI,
-                window.google.elements.transliteration.LanguageCode.GUJARATI,
-                window.google.elements.transliteration.LanguageCode.KANNADA,
-                window.google.elements.transliteration.LanguageCode.MALAYALAM,
-                window.google.elements.transliteration.LanguageCode.PUNJABI,
-                window.google.elements.transliteration.LanguageCode.URDU,
-              ],
-              shortcutKey: 'ctrl+g',
-              transliterationEnabled: true
-            };
-
-            try {
-              const control = new window.google.elements.transliteration.TransliterationControl(options);
-              if (textareaRef.current) {
-                control.makeTransliteratable([textareaRef.current]);
-              }
-            } catch (error) {
-              console.log('Google Indic Keyboard initialization:', error);
-            }
-          }
-        });
-      } else if (!window.google) {
-        // If Google API is not loaded yet, wait a bit and retry
-        setTimeout(initIndicKeyboard, 500);
-      }
-    };
-
-    // Wait for Google API to be available
-    if (document.readyState === 'complete') {
-      initIndicKeyboard();
-    } else {
-      window.addEventListener('load', initIndicKeyboard);
-      return () => window.removeEventListener('load', initIndicKeyboard);
-    }
-  }, []);
 
   const handleChange = (e) => {
     const value = e.target.value;
@@ -96,6 +43,14 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
+      
+      // Keep keyboard open on mobile by refocusing the textarea
+      // Use setTimeout to ensure focus happens after state update
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      }, 100);
     }
   };
 
@@ -113,6 +68,17 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [message]);
+
+  // Auto-focus textarea on mount (for better mobile UX)
+  useEffect(() => {
+    // Small delay to ensure component is fully rendered
+    const timer = setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -132,13 +98,10 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
             value={message}
             onChange={handleChange}
             onKeyPress={handleKeyPress}
-            placeholder="Type your message... (Press Ctrl+G for Indic keyboard)"
+            placeholder="Type your message..."
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none max-h-32 overflow-y-auto"
             rows="1"
           />
-          <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-            <span className="hidden md:inline">Ctrl+G for Indic keyboard</span>
-          </div>
         </div>
         <button
           type="submit"
@@ -149,26 +112,6 @@ const MessageInput = ({ onSendMessage, onTyping }) => {
           <span className="sm:hidden">📤</span>
         </button>
       </form>
-      
-      {/* Keyboard Toggle Button for Mobile */}
-      <div className="mt-2 flex justify-center">
-        <button
-          type="button"
-          onClick={() => {
-            setShowKeyboard(!showKeyboard);
-            if (textareaRef.current) {
-              textareaRef.current.focus();
-            }
-          }}
-          className="text-xs text-primary-600 hover:text-primary-700 underline"
-        >
-          {showKeyboard ? 'Hide' : 'Show'} Indic Keyboard Toggle
-        </button>
-      </div>
-      
-      <div className="mt-2 text-xs text-center text-gray-500">
-        <p>💡 Tip: Press <kbd className="px-2 py-1 bg-gray-100 rounded border">Ctrl+G</kbd> to toggle Indic keyboard</p>
-      </div>
     </div>
   );
 };

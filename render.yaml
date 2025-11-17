@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: chat-app-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromService:
+          type: web
+          name: chat-app-backend
+          property: port
+      - key: MONGODB_URI
+        sync: false  # Set this manually in Render dashboard after MongoDB Atlas setup
+      - key: FRONTEND_URL
+        sync: false  # Set this manually in Render dashboard after Vercel deployment
+
+

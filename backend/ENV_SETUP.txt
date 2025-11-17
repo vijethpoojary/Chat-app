@@ -1,0 +1,39 @@
+===========================================
+ENVIRONMENT VARIABLES FILE SETUP
+===========================================
+
+Create a file named ".env" in the "backend" folder
+with the following content:
+
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/chat-app
+FRONTEND_URL=http://localhost:3000
+
+===========================================
+HOW TO CREATE:
+===========================================
+
+1. Navigate to the "backend" folder
+2. Create a new file named ".env" (without quotes)
+3. Copy and paste the content above
+4. Save the file
+
+OR use command line:
+
+Windows (PowerShell):
+New-Item -Path .env -ItemType File
+Then add the content above.
+
+===========================================
+NOTE:
+===========================================
+
+Even without this file, your app will work because
+server.js has default values:
+- PORT = 5000
+- MONGODB_URI = mongodb://localhost:27017/chat-app
+- FRONTEND_URL = http://localhost:3000
+
+But creating .env is recommended for easy configuration.
+
+

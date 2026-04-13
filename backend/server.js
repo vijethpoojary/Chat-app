@@ -6,7 +6,7 @@ const cors = require('cors');
 const path = require('path');
 
 // Load environment variables from .env.local (for local development)
-// Falls back to .env if .env.local doesn't exist
+// Falls back to .env if .env.local doesn't exist 
 require('dotenv').config({ path: path.resolve(__dirname, '.env.local') });
 require('dotenv').config(); // Also load .env as fallback
 
